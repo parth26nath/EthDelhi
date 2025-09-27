@@ -1,0 +1,72 @@
+specVersion: 0.0.5
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: HPVGuardianRegistry
+    network: localhost
+    source:
+      address: "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+      abi: HPVGuardianRegistry
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Guardian
+        - GlobalStats
+      abis:
+        - name: HPVGuardianRegistry
+          file: ./abis/HPVGuardianRegistry.json
+      eventHandlers:
+        - event: GuardianNFTMinted(indexed address,indexed bytes32,uint256)
+          handler: handleGuardianNFTMinted
+        - event: ChipVerified(indexed bytes32,indexed address,uint256)
+          handler: handleChipVerified
+      file: ./src/hpv-guardian-registry.ts
+  - kind: ethereum
+    name: HPVForum
+    network: localhost
+    source:
+      address: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+      abi: HPVForum
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Post
+        - Upvote
+        - GlobalStats
+      abis:
+        - name: HPVForum
+          file: ./abis/HPVForum.json
+      eventHandlers:
+        - event: PostCreated(indexed bytes32,indexed address,string,uint256)
+          handler: handlePostCreated
+        - event: PostUpvoted(indexed bytes32,indexed address,uint256)
+          handler: handlePostUpvoted
+      file: ./src/hpv-forum.ts
+  - kind: ethereum
+    name: HPVRewards
+    network: localhost
+    source:
+      address: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"
+      abi: HPVRewards
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Reward
+        - GlobalStats
+      abis:
+        - name: HPVRewards
+          file: ./abis/HPVRewards.json
+      eventHandlers:
+        - event: RewardAllocated(indexed address,uint256,uint256,uint256)
+          handler: handleRewardAllocated
+      file: ./src/hpv-rewards.ts

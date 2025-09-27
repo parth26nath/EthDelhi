@@ -1,0 +1,45 @@
+type Guardian @entity {
+  id: ID!
+  wallet: Bytes!
+  chipId: Bytes!
+  tokenId: BigInt!
+  timestamp: BigInt!
+  posts: [Post!]! @derivedFrom(field: "author")
+  upvotes: [Upvote!]! @derivedFrom(field: "voter")
+  rewards: [Reward!]! @derivedFrom(field: "recipient")
+}
+
+type Post @entity {
+  id: ID!
+  author: Guardian
+  authorAddress: Bytes!
+  cid: String!
+  createdAt: BigInt!
+  upvotes: [Upvote!]! @derivedFrom(field: "post")
+  upvoteCount: BigInt!
+}
+
+type Upvote @entity {
+  id: ID!
+  post: Post!
+  voter: Guardian
+  voterAddress: Bytes!
+  timestamp: BigInt!
+}
+
+type Reward @entity {
+  id: ID!
+  recipient: Guardian
+  recipientAddress: Bytes!
+  amount: BigInt!
+  timestamp: BigInt!
+  allocationId: BigInt!
+}
+
+type GlobalStats @entity {
+  id: ID!
+  totalGuardians: BigInt!
+  totalPosts: BigInt!
+  totalUpvotes: BigInt!
+  totalRewards: BigInt!
+}

@@ -1,0 +1,26 @@
+{
+  "name": "hpv-warriors",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "bootstrap": "pnpm run build:shared && pnpm run compile:contracts",
+    "build:shared": "pnpm --filter shared build",
+    "compile:contracts": "pnpm --filter contracts compile",
+    "dev": "concurrently \"pnpm dev:node\" \"pnpm dev:deploy\" \"pnpm dev:web\" \"pnpm dev:subgraph\"",
+    "dev:node": "pnpm --filter contracts dev:node",
+    "dev:deploy": "sleep 5 && pnpm --filter contracts deploy:local",
+    "dev:web": "sleep 10 && pnpm --filter web dev",
+    "dev:subgraph": "echo 'Subgraph running in mock mode'",
+    "clean": "pnpm --filter '*' clean"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "typescript": "^5.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}

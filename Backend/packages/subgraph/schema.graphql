@@ -2,8 +2,8 @@ type Guardian @entity {
   id: ID!
   wallet: Bytes!
   chipId: Bytes!
-  tokenId: BigInt!
   timestamp: BigInt!
+  tokenId: BigInt!
   posts: [Post!]! @derivedFrom(field: "author")
   upvotes: [Upvote!]! @derivedFrom(field: "voter")
   rewards: [Reward!]! @derivedFrom(field: "recipient")
@@ -15,8 +15,8 @@ type Post @entity {
   authorAddress: Bytes!
   cid: String!
   createdAt: BigInt!
-  upvotes: [Upvote!]! @derivedFrom(field: "post")
-  upvoteCount: BigInt!
+  upvotes: Int!
+  upvoteList: [Upvote!]! @derivedFrom(field: "post")
 }
 
 type Upvote @entity {
@@ -33,13 +33,28 @@ type Reward @entity {
   recipientAddress: Bytes!
   amount: BigInt!
   timestamp: BigInt!
-  allocationId: BigInt!
+}
+
+type Clinic @entity {
+  id: ID!
+  address: Bytes!
+  registeredAt: BigInt!
+  verifications: [ChipVerification!]! @derivedFrom(field: "clinic")
+}
+
+type ChipVerification @entity {
+  id: ID!
+  chipId: Bytes!
+  clinic: Clinic!
+  timestamp: BigInt!
+  guardian: Guardian
 }
 
 type GlobalStats @entity {
   id: ID!
-  totalGuardians: BigInt!
-  totalPosts: BigInt!
-  totalUpvotes: BigInt!
+  totalGuardians: Int!
+  totalPosts: Int!
+  totalUpvotes: Int!
   totalRewards: BigInt!
+  lastUpdated: BigInt!
 }

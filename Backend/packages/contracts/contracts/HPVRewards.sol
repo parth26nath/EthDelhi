@@ -2,77 +2,82 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 contract HPVRewards is Ownable, ReentrancyGuard {
-    struct RewardAllocation {
-        address recipient;
+    // Events
+    event RewardAllocated(address indexed recipient, uint256 amount, uint256 timestamp);
+    event RewardClaimed(address indexed recipient, uint256 amount, uint256 timestamp);
+
+    // Structs
+    struct Reward {
         uint256 amount;
-        uint256 timestamp;
         bool claimed;
+        uint256 timestamp;
     }
 
+    // State variables
+    mapping(address => Reward[]) public rewards;
     mapping(address => uint256) public totalAllocated;
     mapping(address => uint256) public totalClaimed;
-    mapping(address => RewardAllocation[]) public userAllocations;
 
-    RewardAllocation[] public allAllocations;
-
-    event RewardAllocated(address indexed recipient, uint256 amount, uint256 timestamp, uint256 allocationId);
-    event RewardClaimed(address indexed recipient, uint256 amount, uint256 allocationId);
+    uint256 public totalRewardsPool;
 
     constructor() Ownable(msg.sender) {}
 
-    function allocateRewards(address[] calldata recipients, uint256[] calldata amounts) external onlyOwner {
+    // Receive ETH donations to the rewards pool
+    receive() external payable {
+        totalRewardsPool += msg.value;
+    }
+
+    // Allocate rewards to multiple recipients (batch operation)
+    function allocateRewards(
+        address[] memory recipients,
+        uint256[] memory amounts
+    ) external onlyOwner {
         require(recipients.length == amounts.length, "Arrays length mismatch");
         require(recipients.length > 0, "No recipients provided");
 
         for (uint256 i = 0; i < recipients.length; i++) {
-            address recipient = recipients[i];
-            uint256 amount = amounts[i];
+            require(recipients[i] != address(0), "Invalid recipient address");
+            require(amounts[i] > 0, "Invalid amount");
 
-            require(recipient != address(0), "Invalid recipient");
-            require(amount > 0, "Amount must be greater than 0");
+            rewards[recipients[i]].push(Reward({
+                amount: amounts[i],
+                claimed: false,
+                timestamp: block.timestamp
+            }));
 
-            RewardAllocation memory allocation = RewardAllocation({
-                recipient: recipient,
-                amount: amount,
-                timestamp: block.timestamp,
-                claimed: false
-            });
-
-            userAllocations[recipient].push(allocation);
-            allAllocations.push(allocation);
-            totalAllocated[recipient] += amount;
-
-            emit RewardAllocated(recipient, amount, block.timestamp, allAllocations.length - 1);
+            totalAllocated[recipients[i]] += amounts[i];
+            emit RewardAllocated(recipients[i], amounts[i], block.timestamp);
         }
     }
 
-    function claim(uint256 allocationId) external nonReentrant {
-        require(allocationId < allAllocations.length, "Invalid allocation ID");
+    // Allocate reward to a single recipient
+    function allocateReward(address recipient, uint256 amount) external onlyOwner {
+        require(recipient != address(0), "Invalid recipient address");
+        require(amount > 0, "Invalid amount");
 
-        RewardAllocation storage allocation = allAllocations[allocationId];
-        require(allocation.recipient == msg.sender, "Not your allocation");
-        require(!allocation.claimed, "Already claimed");
-        require(address(this).balance >= allocation.amount, "Insufficient contract balance");
+        rewards[recipient].push(Reward({
+            amount: amount,
+            claimed: false,
+            timestamp: block.timestamp
+        }));
 
-        allocation.claimed = true;
-        totalClaimed[msg.sender] += allocation.amount;
-
-        payable(msg.sender).transfer(allocation.amount);
-
-        emit RewardClaimed(msg.sender, allocation.amount, allocationId);
+        totalAllocated[recipient] += amount;
+        emit RewardAllocated(recipient, amount, block.timestamp);
     }
 
-    function claimAll() external nonReentrant {
+    // Claim all unclaimed rewards
+    function claimRewards() external nonReentrant {
         uint256 totalToClaim = 0;
+        Reward[] storage userRewards = rewards[msg.sender];
 
-        for (uint256 i = 0; i < userAllocations[msg.sender].length; i++) {
-            if (!userAllocations[msg.sender][i].claimed) {
-                totalToClaim += userAllocations[msg.sender][i].amount;
-                userAllocations[msg.sender][i].claimed = true;
+        // Calculate total unclaimed amount
+        for (uint256 i = 0; i < userRewards.length; i++) {
+            if (!userRewards[i].claimed) {
+                totalToClaim += userRewards[i].amount;
+                userRewards[i].claimed = true;
             }
         }
 
@@ -80,34 +85,75 @@ contract HPVRewards is Ownable, ReentrancyGuard {
         require(address(this).balance >= totalToClaim, "Insufficient contract balance");
 
         totalClaimed[msg.sender] += totalToClaim;
-        payable(msg.sender).transfer(totalToClaim);
+
+        // Transfer ETH to recipient
+        (bool success, ) = msg.sender.call{value: totalToClaim}("");
+        require(success, "Transfer failed");
+
+        emit RewardClaimed(msg.sender, totalToClaim, block.timestamp);
     }
 
-    function getUserAllocations(address user) external view returns (RewardAllocation[] memory) {
-        return userAllocations[user];
+    // Get user's reward history
+    function getUserRewards(address user) external view returns (
+        uint256[] memory amounts,
+        bool[] memory claimed,
+        uint256[] memory timestamps
+    ) {
+        Reward[] memory userRewards = rewards[user];
+        uint256 length = userRewards.length;
+
+        amounts = new uint256[](length);
+        claimed = new bool[](length);
+        timestamps = new uint256[](length);
+
+        for (uint256 i = 0; i < length; i++) {
+            amounts[i] = userRewards[i].amount;
+            claimed[i] = userRewards[i].claimed;
+            timestamps[i] = userRewards[i].timestamp;
+        }
     }
 
-    function getAllAllocations() external view returns (RewardAllocation[] memory) {
-        return allAllocations;
-    }
-
+    // Get unclaimed reward amount for a user
     function getUnclaimedAmount(address user) external view returns (uint256) {
         uint256 unclaimed = 0;
-        for (uint256 i = 0; i < userAllocations[user].length; i++) {
-            if (!userAllocations[user][i].claimed) {
-                unclaimed += userAllocations[user][i].amount;
+        Reward[] memory userRewards = rewards[user];
+
+        for (uint256 i = 0; i < userRewards.length; i++) {
+            if (!userRewards[i].claimed) {
+                unclaimed += userRewards[i].amount;
             }
         }
+
         return unclaimed;
     }
 
-    function getTotalAllocations() external view returns (uint256) {
-        return allAllocations.length;
+    // Get total rewards allocated to a user
+    function getTotalAllocated(address user) external view returns (uint256) {
+        return totalAllocated[user];
     }
 
-    receive() external payable {}
+    // Get total rewards claimed by a user
+    function getTotalClaimed(address user) external view returns (uint256) {
+        return totalClaimed[user];
+    }
 
-    function withdraw() external onlyOwner {
-        payable(owner()).transfer(address(this).balance);
+    // Get contract balance
+    function getContractBalance() external view returns (uint256) {
+        return address(this).balance;
+    }
+
+    // Owner can withdraw excess funds
+    function withdrawExcess(uint256 amount) external onlyOwner {
+        require(amount <= address(this).balance, "Insufficient balance");
+
+        (bool success, ) = owner().call{value: amount}("");
+        require(success, "Transfer failed");
+    }
+
+    // Emergency function to pause claims (if needed)
+    function emergencyWithdraw() external onlyOwner {
+        uint256 balance = address(this).balance;
+        (bool success, ) = owner().call{value: balance}("");
+        require(success, "Transfer failed");
     }
 }

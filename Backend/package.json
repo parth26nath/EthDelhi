@@ -1,23 +1,26 @@
 {
   "name": "hpv-warriors",
+  "version": "1.0.0",
+  "description": "HPV Warriors DAO - Anonymous women's health forum with ZK verification",
   "private": true,
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
-    "bootstrap": "pnpm run build:shared && pnpm run compile:contracts",
+    "bootstrap": "pnpm install && pnpm build:shared && pnpm compile:contracts",
     "build:shared": "pnpm --filter shared build",
     "compile:contracts": "pnpm --filter contracts compile",
-    "dev": "concurrently \"pnpm dev:node\" \"pnpm dev:deploy\" \"pnpm dev:web\" \"pnpm dev:subgraph\"",
-    "dev:node": "pnpm --filter contracts dev:node",
-    "dev:deploy": "sleep 5 && pnpm --filter contracts deploy:local",
-    "dev:web": "sleep 10 && pnpm --filter web dev",
-    "dev:subgraph": "echo 'Subgraph running in mock mode'",
-    "clean": "pnpm --filter '*' clean"
+    "dev": "concurrently \"pnpm dev:hardhat\" \"pnpm dev:web\" \"pnpm dev:subgraph\"",
+    "dev:hardhat": "pnpm --filter contracts dev",
+    "dev:web": "pnpm --filter web dev",
+    "dev:subgraph": "echo 'Subgraph in mock mode - check web app'",
+    "deploy:contracts": "pnpm --filter contracts deploy",
+    "test": "pnpm --filter contracts test",
+    "clean": "pnpm --filter contracts clean && pnpm --filter web clean"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
-    "typescript": "^5.2.0"
+    "typescript": "^5.3.3"
   },
   "engines": {
     "node": ">=18.0.0",

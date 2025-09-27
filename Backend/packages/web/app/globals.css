@@ -4,52 +4,58 @@
 
 @layer base {
   html {
-    scroll-behavior: smooth;
-  }
-
-  body {
-    @apply bg-gray-50 text-gray-900;
+    font-family: var(--font-inter), system-ui, sans-serif;
   }
 }
 
 @layer components {
   .btn {
-    @apply px-4 py-2 rounded-lg font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply px-4 py-2 font-medium transition-colors duration-200 rounded-lg;
   }
 
   .btn-primary {
-    @apply btn bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800;
+    @apply text-white bg-primary-600 hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed;
   }
 
   .btn-secondary {
-    @apply btn bg-gray-200 text-gray-900 hover:bg-gray-300 active:bg-gray-400;
+    @apply text-gray-800 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed;
   }
 
   .btn-guardian {
-    @apply btn bg-guardian-600 text-white hover:bg-guardian-700 active:bg-guardian-800;
+    @apply text-white bg-guardian-600 hover:bg-guardian-700 disabled:bg-gray-300 disabled:cursor-not-allowed;
   }
 
   .card {
-    @apply bg-white rounded-xl shadow-sm border border-gray-200 p-6;
+    @apply bg-white border border-gray-200 rounded-lg shadow-sm;
   }
 
-  .badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  .guardian-badge {
+    @apply inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-guardian-100 ;
   }
 
-  .badge-guardian {
-    @apply badge bg-guardian-100 text-guardian-800;
+  .loading-spinner {
+    @apply w-4 h-4 border-b-2 rounded-full animate-spin border-primary-600;
   }
+}
 
-  .badge-user {
-    @apply badge bg-gray-100 text-gray-800;
-  }
+.world-app-compat {
+  /* Styles to ensure compatibility with World App */
+  max-width: 100vw;
+  overflow-x: hidden;
+}
 
-  .input {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+/* NFC scanning animation */
+@keyframes nfc-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
   }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.05);
+  }
+}
 
-  .textarea {
-    @apply input resize-none;
-  }
+.nfc-scanning {
+  animation: nfc-pulse 2s ease-in-out infinite;
 }

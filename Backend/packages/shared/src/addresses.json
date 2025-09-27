@@ -1,0 +1,20 @@
+{
+  "network": "localhost",
+  "chainId": 31337,
+  "deployer": "0x0000000000000000000000000000000000000000",
+  "timestamp": "2024-01-01T00:00:00.000Z",
+  "contracts": {
+    "HPVGuardianRegistry": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "constructorArgs": []
+    },
+    "HPVForum": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "constructorArgs": []
+    },
+    "HPVRewards": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "constructorArgs": []
+    }
+  }
+}

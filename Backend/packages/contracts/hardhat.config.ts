@@ -1,14 +1,12 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
-import "@nomicfoundation/hardhat-verify";
-import { config } from "dotenv";
+import * as dotenv from "dotenv";
+import path from "path";
 
-config({ path: "../../.env" });
+// Load .env from root
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
-const PRIVATE_KEY = process.env.PRIVATE_KEY || "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
-const RPC_URL = process.env.RPC_URL || "https://rpc-amoy.polygon.technology";
-
-const hardhatConfig: HardhatUserConfig = {
+const config: HardhatUserConfig = {
   solidity: {
     version: "0.8.20",
     settings: {
@@ -19,22 +17,23 @@ const hardhatConfig: HardhatUserConfig = {
     },
   },
   networks: {
-    localhost: {
-      url: "http://127.0.0.1:8545",
-      accounts: [PRIVATE_KEY],
+    hardhat: {
+      chainId: 31337,
     },
     amoy: {
-      url: RPC_URL,
-      accounts: [PRIVATE_KEY],
+      url: process.env.RPC_URL || "https://api.zan.top/polygon-amoy",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 80002,
+    },
+    worldchain: {
+      url: "https://worldchain-mainnet.g.alchemy.com/public",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 480,
     },
   },
   paths: {
-    sources: "./contracts",
-    tests: "./test",
-    cache: "./cache",
-    artifacts: "./artifacts",
+    artifacts: "../shared/artifacts",
   },
 };
 
-export default hardhatConfig;
+export default config;

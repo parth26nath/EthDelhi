@@ -1,84 +1,97 @@
 import { ethers } from "hardhat";
-import { writeFileSync, mkdirSync } from "fs";
-import { join } from "path";
+import * as fs from "fs";
+import * as path from "path";
 
 async function main() {
-  const [deployer] = await ethers.getSigners();
+  console.log("🚀 Deploying HPV Warriors DAO contracts...");
 
-  console.log("Deploying contracts with the account:", deployer.address);
-  console.log("Account balance:", (await ethers.provider.getBalance(deployer.address)).toString());
+  const [deployer] = await ethers.getSigners();
+  console.log("Deploying with account:", deployer.address);
+  console.log("Account balance:", ethers.formatEther(await ethers.provider.getBalance(deployer.address)));
 
   // Deploy HPVGuardianRegistry
-  console.log("\nDeploying HPVGuardianRegistry...");
+  console.log("\n📋 Deploying HPVGuardianRegistry...");
   const HPVGuardianRegistry = await ethers.getContractFactory("HPVGuardianRegistry");
   const guardianRegistry = await HPVGuardianRegistry.deploy();
   await guardianRegistry.waitForDeployment();
-  const guardianRegistryAddress = await guardianRegistry.getAddress();
-  console.log("HPVGuardianRegistry deployed to:", guardianRegistryAddress);
+  const registryAddress = await guardianRegistry.getAddress();
+  console.log("✅ HPVGuardianRegistry deployed to:", registryAddress);
 
   // Deploy HPVForum
-  console.log("\nDeploying HPVForum...");
+  console.log("\n💬 Deploying HPVForum...");
   const HPVForum = await ethers.getContractFactory("HPVForum");
   const forum = await HPVForum.deploy();
   await forum.waitForDeployment();
   const forumAddress = await forum.getAddress();
-  console.log("HPVForum deployed to:", forumAddress);
+  console.log("✅ HPVForum deployed to:", forumAddress);
 
   // Deploy HPVRewards
-  console.log("\nDeploying HPVRewards...");
+  console.log("\n🎁 Deploying HPVRewards...");
   const HPVRewards = await ethers.getContractFactory("HPVRewards");
   const rewards = await HPVRewards.deploy();
   await rewards.waitForDeployment();
   const rewardsAddress = await rewards.getAddress();
-  console.log("HPVRewards deployed to:", rewardsAddress);
+  console.log("✅ HPVRewards deployed to:", rewardsAddress);
 
-  // Register deployer as authorized clinic for demo
-  console.log("\nRegistering deployer as authorized clinic...");
-  await guardianRegistry.registerClinic(deployer.address);
-  console.log("Deployer registered as authorized clinic");
+  // Setup initial configuration
+  console.log("\n⚙️ Setting up initial configuration...");
 
-  // Fund rewards contract for demo
-  console.log("\nFunding rewards contract...");
-  await deployer.sendTransaction({
+  // Register deployer as an authorized clinic for testing
+  const registerTx = await guardianRegistry.registerClinic(deployer.address);
+  await registerTx.wait();
+  console.log("✅ Registered deployer as authorized clinic");
+
+  // Fund rewards contract with some ETH for testing
+  const fundTx = await deployer.sendTransaction({
     to: rewardsAddress,
-    value: ethers.parseEther("1.0")
+    value: ethers.parseEther("0.1")
   });
-  console.log("Rewards contract funded with 1 ETH");
+  await fundTx.wait();
+  console.log("✅ Funded rewards contract with 0.1 ETH");
 
-  // Save deployment info
+  // Save contract addresses and ABIs
   const deploymentInfo = {
     network: (await ethers.provider.getNetwork()).name,
-    chainId: (await ethers.provider.getNetwork()).chainId.toString(),
+    chainId: (await ethers.provider.getNetwork()).chainId,
     deployer: deployer.address,
+    timestamp: new Date().toISOString(),
     contracts: {
-      HPVGuardianRegistry: guardianRegistryAddress,
-      HPVForum: forumAddress,
-      HPVRewards: rewardsAddress
-    },
-    timestamp: new Date().toISOString()
+      HPVGuardianRegistry: {
+        address: registryAddress,
+        constructorArgs: []
+      },
+      HPVForum: {
+        address: forumAddress,
+        constructorArgs: []
+      },
+      HPVRewards: {
+        address: rewardsAddress,
+        constructorArgs: []
+      }
+    }
   };
 
-  // Create shared directory if it doesn't exist
-  const sharedDir = join(__dirname, "../../shared");
-  try {
-    mkdirSync(sharedDir, { recursive: true });
-  } catch (error) {
-    // Directory already exists
+  // Ensure shared directory exists
+  const sharedDir = path.resolve(__dirname, "../../shared");
+  if (!fs.existsSync(sharedDir)) {
+    fs.mkdirSync(sharedDir, { recursive: true });
   }
 
-  // Write addresses to shared package
-  writeFileSync(
-    join(sharedDir, "addresses.json"),
-    JSON.stringify(deploymentInfo, null, 2)
-  );
+  // Write addresses file
+  const addressesPath = path.resolve(sharedDir, "addresses.json");
+  fs.writeFileSync(addressesPath, JSON.stringify(deploymentInfo, null, 2));
+  console.log("✅ Contract addresses saved to:", addressesPath);
 
-  console.log("\nDeployment completed!");
-  console.log("Deployment info saved to packages/shared/addresses.json");
+  console.log("\n🎉 Deployment completed successfully!");
+  console.log("\n📋 Contract Addresses:");
+  console.log("HPVGuardianRegistry:", registryAddress);
+  console.log("HPVForum:", forumAddress);
+  console.log("HPVRewards:", rewardsAddress);
 }
 
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error(error);
+    console.error("❌ Deployment failed:", error);
     process.exit(1);
   });

@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useAccount } from 'wagmi';
+// import { useAccount } from 'wagmi'; // Removed for demo
 import { ConnectWallet } from './ConnectWallet';
 
 export function Navigation() {
-  // const { isConnected } = useAccount();
+  // const { isConnected } = useAccount(); // Removed for demo
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navigation = [

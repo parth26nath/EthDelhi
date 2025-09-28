@@ -1,14 +1,31 @@
 'use client';
 
 import { useState } from 'react';
-import { useAccount, useConnect, useDisconnect } from 'wagmi';
-import { formatAddress } from '@/lib/types';
+import { formatAddress } from '@/lib/utils';
 
 export function ConnectWallet() {
-  const { address, isConnected } = useAccount();
-  const { connect, connectors, isLoading } = useConnect();
-  const { disconnect } = useDisconnect();
+  const [isConnected, setIsConnected] = useState(false);
+  const [address, setAddress] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+
+  const handleConnect = async (walletName: string) => {
+    setIsLoading(true);
+    setShowDropdown(false);
+
+    // Simulate wallet connection
+    setTimeout(() => {
+      setIsConnected(true);
+      setAddress('0x1234567890abcdef1234567890abcdef12345678');
+      setIsLoading(false);
+    }, 1000);
+  };
+
+  const handleDisconnect = () => {
+    setIsConnected(false);
+    setAddress('');
+    setShowDropdown(false);
+  };
 
   if (isConnected && address) {
     return (
@@ -36,10 +53,7 @@ export function ConnectWallet() {
                 <div className="text-gray-500">{formatAddress(address)}</div>
               </div>
               <button
-                onClick={() => {
-                  disconnect();
-                  setShowDropdown(false);
-                }}
+                onClick={handleDisconnect}
                 className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
               >
                 Disconnect
@@ -68,26 +82,23 @@ export function ConnectWallet() {
             <div className="px-4 py-2 text-sm text-gray-700 border-b border-gray-100">
               <div className="font-medium">Choose a wallet</div>
             </div>
-            {connectors.map((connector) => (
+            {['MetaMask', 'WalletConnect', 'Coinbase Wallet'].map((walletName) => (
               <button
-                key={connector.id}
-                onClick={() => {
-                  connect({ connector });
-                  setShowDropdown(false);
-                }}
+                key={walletName}
+                onClick={() => handleConnect(walletName)}
                 disabled={isLoading}
                 className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center space-x-2"
               >
                 <div className="w-6 h-6 bg-gray-200 rounded flex items-center justify-center">
                   <span className="text-xs font-bold">
-                    {connector.name.slice(0, 2).toUpperCase()}
+                    {walletName.slice(0, 2).toUpperCase()}
                   </span>
                 </div>
-                <span>{connector.name}</span>
+                <span>{walletName}</span>
               </button>
             ))}
             <div className="px-4 py-2 text-xs text-gray-500 border-t border-gray-100">
-              <div>Demo mode: Use any wallet or the ephemeral signer for testing.</div>
+              <div>Demo mode: Mock wallet connection for testing.</div>
             </div>
           </div>
         </div>

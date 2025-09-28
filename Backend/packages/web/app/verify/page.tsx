@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useAccount } from 'wagmi';
+// import { useAccount } from 'wagmi'; // Removed for demo
 import { ConnectWallet } from '@/components/ConnectWallet';
 import { NFCScanner } from '@/components/NFCScanner';
 import { SelfProtocolVerifier } from '@/components/SelfProtocolVerifier';
@@ -10,7 +10,8 @@ import { GuardianMinter } from '@/components/GuardianMinter';
 type VerificationStep = 'connect' | 'nfc' | 'zk' | 'mint' | 'complete';
 
 export default function VerifyPage() {
-  const { isConnected } = useAccount();
+  // const { isConnected } = useAccount(); // Removed for demo
+  const isConnected = false; // Mock for demo
   const [currentStep, setCurrentStep] = useState<VerificationStep>('connect');
   const [chipId, setChipId] = useState<string>('');
   const [zkProof, setZkProof] = useState<string>('');

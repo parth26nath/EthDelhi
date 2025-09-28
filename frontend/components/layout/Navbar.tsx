@@ -21,9 +21,8 @@ const TopBar = () => {
                         </div>
                         <div className="lg:flex hidden justify-center ms-auto">
                             <Link href="#home" target="_blank" className="inline-flex items-center font-medium text-dark hover:text-primary transition-all duration-300 mx-3.75 py-1.5">Home</Link>
-                            <Link href="#feature" target="_blank" className="inline-flex items-center font-medium text-dark hover:text-primary transition-all duration-300 mx-3.75 py-1.5">Feature</Link>
-                            <Link href="#services" target="_blank" className="inline-flex items-center font-medium text-dark hover:text-primary transition-all duration-300 mx-3.75 py-1.5">Services</Link>
-                            <Link href="#team" target="_blank" className="inline-flex items-center font-medium text-dark hover:text-primary transition-all duration-300 mx-3.75 py-1.5">Team</Link>
+                            <Link href="#features" className="inline-flex items-center font-medium text-dark hover:text-primary transition-all duration-300 mx-3.75 py-1.5">Features</Link>
+                            <Link href="#services" className="inline-flex items-center font-medium text-dark hover:text-primary transition-all duration-300 mx-3.75 py-1.5">Services</Link>
                             <Link href="#contact" target="_blank" className="inline-flex items-center font-medium text-dark hover:text-primary transition-all duration-300 mx-3.75 py-1.5">Contact</Link>
                         </div>
                         <div className="flex flex-row justify-center items-center md:gap-4 gap-2.5">
@@ -51,9 +50,8 @@ const TopBar = () => {
                 </div>
                 <div className="p-4 overflow-y-scroll h-full">
                     <Link href="#home" className="text-dark text-base flex items-center py-2.5 font-medium hover:underline">Home</Link>
-                    <Link href="#feature" className="text-dark text-base flex items-center py-2.5 font-medium hover:underline">Feature</Link>
+                    <Link href="#features" className="text-dark text-base flex items-center py-2.5 font-medium hover:underline">Features</Link>
                     <Link href="#services" className="text-dark text-base flex items-center py-2.5 font-medium hover:underline">Services</Link>
-                    <Link href="#team" className="text-dark text-base flex items-center py-2.5 font-medium hover:underline">Team</Link>
                     <Link href="#contact" className="text-dark text-base flex items-center py-2.5 font-medium hover:underline">Contact</Link>
                 </div>
             </div>

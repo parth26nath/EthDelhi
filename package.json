@@ -8,15 +8,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tech-creed/Green-Chain-PLI-Hackathon-2.0.git"
+    "url": "git+github.com.git"
   },
   "keywords": [],
   "author": "MUKILAN | TENSH KUMAR",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/tech-creed/Green-Chain-PLI-Hackathon-2.0/issues"
+    "url": "github.com/issues"
   },
-  "homepage": "https://github.com/tech-creed/Green-Chain-PLI-Hackathon-2.0#readme",
+  "homepage": "github.com#readme",
   "dependencies": {
     "@openzeppelin/contracts": "^4.9.3",
     "@truffle/hdwallet-provider": "^2.1.15",

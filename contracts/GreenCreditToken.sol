@@ -2,10 +2,12 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract GreenCreditToken is ERC20 {
     address payable public EcoChainPlatformOwner;
     uint public tokenPrice;
+    IERC20 public pyusdToken;
 
     mapping(address => bool) public GovernmentAccounts;
     mapping(address => bool) public IndustryAccounts; 
@@ -15,7 +17,10 @@ contract GreenCreditToken is ERC20 {
 
     constructor(uint initTokenPrice) ERC20("GreenCredit", "GCT") {
         EcoChainPlatformOwner = payable(msg.sender);
+        // tokenPrice should be in PYUSD units (6 decimals)
+        // e.g., 1000000 = 1 PYUSD
         tokenPrice = initTokenPrice;
+        pyusdToken = IERC20(0xCaC524BcA292aaade2DF8A05cC58F0a65B1B3bB9);
         _mint(EcoChainPlatformOwner, 100 * 10**decimals());
     }
 
@@ -112,16 +117,20 @@ contract GreenCreditToken is ERC20 {
     function buyToken(
         address _to,
         uint _tokenCount,
-        address payable _govAddress
-    ) public payable onlyIndustry {
+        address _govAddress
+    ) public onlyIndustry {
         require(_tokenCount > 0, "Token count must be greater than 0");
-        require(tokenPrice * _tokenCount == msg.value, "Incorrect amount");
         require(IndustryAllowance[_to] >= _tokenCount, "Allowance exceeded");
 
+        uint totalCost = tokenPrice * _tokenCount;
+        require(pyusdToken.balanceOf(msg.sender) >= totalCost, "Insufficient PYUSD balance");
+
+        // Transfer PYUSD from buyer to government
+        require(pyusdToken.transferFrom(msg.sender, _govAddress, totalCost), "PYUSD transfer failed");
+
         _mint(_to, _tokenCount * 10**decimals());
-        _govAddress.transfer(msg.value); // Pay the total cost to the Government
         IndustryAllowance[_to] = IndustryAllowance[_to] - _tokenCount;
-        emit tokenPurchased(_to, _govAddress, _tokenCount, msg.value);
+        emit tokenPurchased(_to, _govAddress, _tokenCount, totalCost);
     }
 
     // ==== Carbon credit trading system ====
@@ -175,18 +184,19 @@ contract GreenCreditToken is ERC20 {
     }
 
     // buy the listed token
-    function buyTokensFromMarketpalce(uint _listingId) public payable onlyIndustry {
+    function buyTokensFromMarketpalce(uint _listingId) public onlyIndustry {
         TokenListing storage listing = listings[_listingId];
         require(listing.isActive, "Listing is not active");
-        require(msg.value == listing.price, "Incorrect payment amount");
+        require(pyusdToken.balanceOf(msg.sender) >= listing.price, "Insufficient PYUSD balance");
+
+        // Transfer PYUSD from buyer to seller
+        require(pyusdToken.transferFrom(msg.sender, listing.seller, listing.price), "PYUSD transfer failed");
 
         _transfer(
             listing.seller,
             msg.sender,
             listing.tokenAmount * 10**decimals()
         );
-
-        payable(listing.seller).transfer(msg.value);
 
         listing.isActive = false;
 

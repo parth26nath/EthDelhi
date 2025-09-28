@@ -98,6 +98,19 @@ App = {
       KYCContract.abi,
       KYCContractAddress
     );
+
+    // PYUSD Token ABI
+    const PYUSD_ABI = [
+      {"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[{"internalType":"address","name":"account","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+      {"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"transferFrom","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"},
+      {"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"transfer","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"nonpayable","type":"function"}
+    ];
+    const pyusdTokenAddress = "0xCaC524BcA292aaade2DF8A05cC58F0a65B1B3bB9";
+    App.contracts.pyusd = new web3.eth.Contract(
+      PYUSD_ABI,
+      pyusdTokenAddress
+    );
   },
 
   connectWalletRegister: async () => {
@@ -236,28 +249,45 @@ App = {
     const emissionDate = document
       .getElementById("emissionDate")
       .value.toString();
-    const etherValue = web3.utils.toWei(
-      (parseFloat(0.001) * parseFloat(co2)).toString(),
-      "ether"
-    );
 
-    App.contracts.emission.methods
-      .createEmissionData(walletID, co2, emissionDate)
-      .send({ from: App.account, value: etherValue })
-      .on("transactionHash", (hash) => {
-        console.log("Transaction hash:", hash);
-      })
-      .on("error", (error) => {
-        console.error("Error:", error);
-      });
+    // Calculate fees in PYUSD (PYUSD uses 6 decimal places, not 18)
+    // 0.001 PYUSD per ton of CO2
+    const feeAmount = parseFloat(0.001) * parseFloat(co2);
+    const pyusdFees = Math.floor(feeAmount * 1000000).toString(); // Convert to 6 decimal places
 
-    await App.contracts.token.methods
-      .burnToken(App.account, 1)
-      .send({ from: App.account })
-      .on("transactionHash", (hash) => {
-        console.log("Transaction hash:", hash);
-        window.location.href = "/mark-co2";
-      });
+    // For the deployed contract, we still need to send a small amount of Ether for the original fee structure
+    const etherValue = web3.utils.toWei("0.0001", "ether"); // Minimal ether fee
+
+    try {
+      // First transfer PYUSD as the main payment (separate transaction)
+      await App.contracts.pyusd.methods
+        .transfer("0xB2Bb3Dd210A16b4B13B1Da54DF3A1fe1037C03F0", pyusdFees)
+        .send({ from: App.account });
+
+      console.log("PYUSD payment sent:", App.formatPYUSD(pyusdFees), "PYUSD");
+
+      // Then create emission data with minimal ether (to satisfy deployed contract)
+      App.contracts.emission.methods
+        .createEmissionData(walletID, co2, emissionDate)
+        .send({ from: App.account, value: etherValue })
+        .on("transactionHash", (hash) => {
+          console.log("Emission data transaction hash:", hash);
+        })
+        .on("error", (error) => {
+          console.error("Error:", error);
+        });
+
+      await App.contracts.token.methods
+        .burnToken(App.account, 1)
+        .send({ from: App.account })
+        .on("transactionHash", (hash) => {
+          console.log("Token burn transaction hash:", hash);
+          window.location.href = "/mark-co2";
+        });
+    } catch (error) {
+      console.error("PYUSD or transaction failed:", error);
+      alert("Please ensure you have sufficient PYUSD balance and try again.");
+    }
   },
 
   FetchKYCIndustry: async () => {
@@ -363,7 +393,7 @@ App = {
           <td>${task[2]}</td>
           <td>${task[0]}</td>
           <td>${task[1]}</td>
-          <td>${task[3] / 1000}</td>
+          <td>${App.formatPYUSD(task[3])} PYUSD</td>
           <td>${cum_emission}</td>
           </tr>`;
         j += 1;
@@ -491,7 +521,7 @@ App = {
           <td>${task[2]}</td>
           <td>${task[0]}</td>
           <td>${task[1]}</td>
-          <td>${task[3] / 1000}</td>
+          <td>${App.formatPYUSD(task[3])} PYUSD</td>
           <td>${cum_emission}</td>
           </tr>`;
         j += 1;
@@ -602,7 +632,7 @@ App = {
     document.querySelector("#tokenAllowance").innerHTML =
       tokenAllowance.toString() + " Tokens";
     document.querySelector("#tokenPrice").innerHTML =
-      tokenPrice.toString() + " Wei";
+      App.formatPYUSD(tokenPrice) + " PYUSD";
     const totalSupply = await App.contracts.token.methods.totalSupply().call();
     document.querySelector("#tokenSupply").innerHTML =
       totalSupply.toString() + " Wei";
@@ -649,9 +679,29 @@ App = {
       });
   },
 
+  // Helper function to format PYUSD amounts
+  formatPYUSD: (amount) => {
+    return (parseInt(amount) / 1000000).toFixed(6);
+  },
+
+  // New utility function to check PYUSD balance
+  checkPYUSDBalance: async () => {
+    await App.load();
+    try {
+      const balance = await App.contracts.pyusd.methods.balanceOf(App.account).call();
+      // PYUSD uses 6 decimal places
+      const balanceFormatted = App.formatPYUSD(balance);
+      console.log("PYUSD Balance:", balanceFormatted);
+      return balance;
+    } catch (error) {
+      console.error("Failed to get PYUSD balance:", error);
+      return "0";
+    }
+  },
+
   getReward:async () => {
     await App.load();
-    
+
   },
 
 
@@ -665,7 +715,7 @@ App = {
     document.querySelector("#tokenAllowance").innerHTML =
       tokenAllowance.toString() + " Tokens";
     document.querySelector("#tokenPrice").innerHTML =
-      tokenPrice.toString() + " Wei";
+      App.formatPYUSD(tokenPrice) + " PYUSD";
   },
 
   buyToken: async () => {
@@ -684,16 +734,29 @@ App = {
       alert("Invalid input address");
     }
 
-    await App.contracts.token.methods
-      .buyToken(_to, _tokenCount, _governmentAddress)
-      .send({ from: App.account, value: tokenPrice.toString() * _tokenCount })
-      .on("transactionHash", (hash) => {
-        console.log("Transaction hash:", hash);
-        window.location.href = "/dashboard";
-      })
-      .on("error", (error) => {
-        console.error("Error:", error);
-      });
+    const totalCost = (BigInt(tokenPrice.toString()) * BigInt(_tokenCount)).toString();
+
+    try {
+      // First approve PYUSD spending for token contract
+      await App.contracts.pyusd.methods
+        .approve("0x2d5703C425E3277cCbfbA4d560c0513a10236A63", totalCost)
+        .send({ from: App.account });
+
+      // Then buy tokens using PYUSD
+      await App.contracts.token.methods
+        .buyToken(_to, _tokenCount, _governmentAddress)
+        .send({ from: App.account })
+        .on("transactionHash", (hash) => {
+          console.log("Transaction hash:", hash);
+          window.location.href = "/dashboard";
+        })
+        .on("error", (error) => {
+          console.error("Error:", error);
+        });
+    } catch (error) {
+      console.error("PYUSD approval or transaction failed:", error);
+      alert("Please ensure you have sufficient PYUSD balance and try again.");
+    }
   },
 
   detailsToListTokenForSell: async () => {
@@ -706,7 +769,7 @@ App = {
     document.querySelector("#tokenBalance").innerHTML =
       web3.utils.fromWei(tokenBalance.toString(), "ether") + " GCT";
     document.querySelector("#tokenPrice").innerHTML =
-      tokenPrice.toString() + " Wei";
+      App.formatPYUSD(tokenPrice) + " PYUSD";
   },
 
   listTokenForSell: async () => {
@@ -760,16 +823,27 @@ App = {
 
     const listingId = document.querySelector("#listingId").value;
     const tokenPrice = document.querySelector("#tokenPriceForBuy").value;
-    await App.contracts.token.methods
-      .buyTokensFromMarketpalce(listingId)
-      .send({ from: App.account, value: tokenPrice })
 
-      .on("transactionHash", (hash) => {
-        console.log("Transaction hash:", hash);
-        window.location.href = "/dashboard";
-      })
-      .on("error", (error) => {
-        console.error("Error:", error);
-      });
+    try {
+      // First approve PYUSD spending for token contract
+      await App.contracts.pyusd.methods
+        .approve("0x2d5703C425E3277cCbfbA4d560c0513a10236A63", tokenPrice)
+        .send({ from: App.account });
+
+      // Then buy tokens using PYUSD
+      await App.contracts.token.methods
+        .buyTokensFromMarketpalce(listingId)
+        .send({ from: App.account })
+        .on("transactionHash", (hash) => {
+          console.log("Transaction hash:", hash);
+          window.location.href = "/dashboard";
+        })
+        .on("error", (error) => {
+          console.error("Error:", error);
+        });
+    } catch (error) {
+      console.error("PYUSD approval or transaction failed:", error);
+      alert("Please ensure you have sufficient PYUSD balance and try again.");
+    }
   },
 };
